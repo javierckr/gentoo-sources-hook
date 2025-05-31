@@ -1,0 +1,26 @@
+post_pkg_postinst() {
+# Eselect the new kernel or genkernel will build the current one
+	eselect kernel set linux-"${KV}"
+	CURRENT_KV=$(uname -r)
+	unset ARCH
+# Use latest kernel config from current kernel
+	if [[ -f "${EROOT}/usr/src/linux-${CURRENT_KV}/.config" ]] ; then
+		cat "/usr/src/linux-${CURRENT_KV}/.config" >> "${ERROT}/usr/src/linux/.config"
+		cd "${EROOT}/usr/src/linux"
+		make olddefconfig || die 1
+		make -j"$(nproc)" || die 1
+		make modules_install || die 1
+		make install || die 1
+		echo "For custom kmods pls run manually emerge @module-rebuild"
+
+# Use known running good kernel
+	elif [[ -f /proc/config.gz ]] ; then
+		zcat /proc/config.gz >> "${ERROT}/usr/src/linux/.config"
+		cd "${EROOT}/usr/src/linux"
+		make olddefconfig || die 1
+		make -j"$(nproc)" || die 1
+		make modules_install || die 1
+		make install || die 1
+		echo "For custom kmods pls run manually emerge @module-rebuild"
+	fi
+}
